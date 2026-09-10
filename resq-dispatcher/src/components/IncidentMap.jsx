@@ -88,7 +88,7 @@ function phoneRow(inc) {
     ? `<button class="voip-call-btn" data-incident-id="${escapeHtml(String(inc.id))}" ` +
       `style="margin-top:4px;padding:4px 10px;border-radius:999px;border:none;background:#2f7cf6;color:#fff;` +
       `font-weight:600;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">` +
-      `📞 Call (App/WiFi)</button>`
+      `📞 Call </button>`
     : "";
   return `${safePhone ? `<span style="color:#555;">${safePhone}</span><br/>` : ""}${callBtn}<br/>`;
 }
