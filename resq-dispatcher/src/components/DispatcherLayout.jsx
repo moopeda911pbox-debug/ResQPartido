@@ -9,7 +9,7 @@ import { getAllIncidents, subscribeToIncidents } from "../services/incidents";
 import { notifyNewSOS } from "../lib/alerts";
 
 const TITLES = {
-  "/": "Admin Dashboard",
+  "/": "Dispatcher's Dashboard",
   "/alerts": "Manage Alerts",
   "/reports": "Manage Reports",
   "/analytics": "Analytics and Report",
