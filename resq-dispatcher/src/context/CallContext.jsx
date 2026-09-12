@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabase";
 import { createPeerConnection, getMicStream } from "../lib/webrtc";
 import { startCitizenRingtone } from "../lib/alerts";
 import { useAuth } from "./AuthContext";
+import { notifyCitizenOfIncomingCall, cancelPendingCall } from "../lib/callPush";
 
 const CallCtx = createContext(null);
 
@@ -67,12 +68,13 @@ export function CallProvider({ children }) {
       if (notifyRemote && channelRef.current) {
         channelRef.current.send({ type: "broadcast", event: "hangup", payload: {} });
       }
+      if (notifyRemote && callee?.userId) cancelPendingCall(callee.userId);
       cleanup();
       setCallState(state);
       setMuted(false);
       setTimeout(() => setCallState((s) => (s === state ? "idle" : s)), 1800);
     },
-    [cleanup]
+    [cleanup, callee]
   );
 
   const startCall = useCallback(
@@ -135,17 +137,21 @@ export function CallProvider({ children }) {
             if (status !== "SUBSCRIBED") return;
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
+            const dispatcherName = profile?.first_name
+              ? `${profile.first_name} ${profile.last_name ?? ""}`.trim()
+              : "Dispatcher";
             channel.send({
               type: "broadcast",
               event: "offer",
-              payload: {
-                sdp: offer,
-                dispatcherName: profile?.first_name
-                  ? `${profile.first_name} ${profile.last_name ?? ""}`.trim()
-                  : "Dispatcher",
-                incidentType,
-              },
+              payload: { sdp: offer, dispatcherName, incidentType },
             });
+
+            // Fire-and-forget: lets a closed/backgrounded citizen app find
+            // out about this call too, not just one that's already open and
+            // subscribed to the Realtime broadcast above. See
+            // pending_calls_schema.sql and the send-call-push edge function
+            // for why both of these exist alongside the broadcast.
+            notifyCitizenOfIncomingCall({ citizenId: userId, dispatcherName, incidentType, sdp: offer });
           });
       } catch (err) {
         setErrorMsg(
